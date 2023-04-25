@@ -118,3 +118,57 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 	}
 }
+
+func (s *Server) Send(w http.ResponseWriter, r *http.Request, ev *Event) {
+	flusher, err := w.(http.Flusher)
+	if !err {
+		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	for k, v := range s.Headers {
+		w.Header().Set(k, v)
+	}
+	//w.WriteHeader(http.StatusOK)
+	flusher.Flush()
+
+	// Push events to client
+	// If the data buffer is an empty string abort.
+	if len(ev.Data) == 0 && len(ev.Comment) == 0 {
+		return
+	}
+	// if the event has expired, dont send it
+	if s.EventTTL != 0 && time.Now().After(ev.timestamp.Add(s.EventTTL)) {
+		return
+	}
+	if len(ev.Data) > 0 {
+		fmt.Fprintf(w, "id: %s\n", ev.ID)
+		if s.SplitData {
+			sd := bytes.Split(ev.Data, []byte("\n"))
+			for i := range sd {
+				fmt.Fprintf(w, "data: %s\n", sd[i])
+			}
+		} else {
+			if bytes.HasPrefix(ev.Data, []byte(":")) {
+				fmt.Fprintf(w, "%s\n", ev.Data)
+			} else {
+				fmt.Fprintf(w, "data: %s\n", ev.Data)
+			}
+		}
+		if len(ev.Event) > 0 {
+			fmt.Fprintf(w, "event: %s\n", ev.Event)
+		}
+		if len(ev.Retry) > 0 {
+			fmt.Fprintf(w, "retry: %s\n", ev.Retry)
+		}
+	}
+	if len(ev.Comment) > 0 {
+		fmt.Fprintf(w, ": %s\n", ev.Comment)
+	}
+	fmt.Fprint(w, "\n")
+	flusher.Flush()
+}
