@@ -12,7 +12,7 @@ SSE is a client/server implementation for Server Sent Events for Golang.
 
 To install:
 ```
-go get github.com/Ynull/sse
+go get github.com/ynull/sse
 ```
 
 To Test:

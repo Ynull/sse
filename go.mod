@@ -1,4 +1,4 @@
-module github.com/Ynull/sse
+module github.com/ynull/sse
 
 go 1.13
 
