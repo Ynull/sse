@@ -133,7 +133,6 @@ func (s *Server) Send(w http.ResponseWriter, r *http.Request, ev *Event) {
 	for k, v := range s.Headers {
 		w.Header().Set(k, v)
 	}
-	//w.WriteHeader(http.StatusOK)
 	flusher.Flush()
 
 	// Push events to client
