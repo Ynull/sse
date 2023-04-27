@@ -69,7 +69,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	//w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusOK)
 	flusher.Flush()
 
 	// Push events to client
@@ -119,7 +119,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) Send(w http.ResponseWriter, r *http.Request, ev *Event) {
+func (s *Server) send(w http.ResponseWriter, ev *Event, writeHeader bool) {
 	flusher, err := w.(http.Flusher)
 	if !err {
 		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
@@ -132,6 +132,10 @@ func (s *Server) Send(w http.ResponseWriter, r *http.Request, ev *Event) {
 
 	for k, v := range s.Headers {
 		w.Header().Set(k, v)
+	}
+
+	if writeHeader {
+		w.WriteHeader(http.StatusOK)
 	}
 	flusher.Flush()
 
@@ -170,4 +174,12 @@ func (s *Server) Send(w http.ResponseWriter, r *http.Request, ev *Event) {
 	}
 	fmt.Fprint(w, "\n")
 	flusher.Flush()
+}
+
+func (s *Server) Send(w http.ResponseWriter, r *http.Request, ev *Event) {
+	s.send(w, ev, true)
+}
+
+func (s *Server) SendWithoutWriteHeader(w http.ResponseWriter, r *http.Request, ev *Event) {
+	s.send(w, ev, false)
 }
